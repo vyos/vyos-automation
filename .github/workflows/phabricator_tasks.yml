@@ -1,0 +1,24 @@
+name: Autoclose Finished Phabricator Tasks
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 6 * * *'
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11.x
+    
+      - uses: actions/checkout@v4
+
+      - name: run script
+        env:
+          PHABRICATOR_WRITE_TOKEN: ${{ secrets.PHABRICATOR_WRITE_TOKEN }}
+        if: env.PHABRICATOR_WRITE_TOKEN != null
+        run: |
+          pip3 install requests
+          python3 phabricator_tasks/view_tasks.py -t ${{ secrets.PHABRICATOR_WRITE_TOKEN }} 
