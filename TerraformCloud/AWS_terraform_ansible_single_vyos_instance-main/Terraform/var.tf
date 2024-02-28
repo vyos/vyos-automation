@@ -5,6 +5,7 @@ variable "password" {
 }
 variable "host"{
    description = "The IP of my Ansible"
+   type = string
 }
 variable "access" {
    description = "my access_key for AWS"
