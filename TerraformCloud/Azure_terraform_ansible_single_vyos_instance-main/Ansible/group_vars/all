@@ -1,0 +1,6 @@
+ansible_connection: ansible.netcommon.network_cli
+ansible_network_os: vyos.vyos.vyos
+
+# user and password gets from terraform variables "admin_username" and "admin_password"
+ansible_user: vyos
+ansible_ssh_pass: Vyos0!
