@@ -1,0 +1,21 @@
+#cloud-config
+vyos_config_commands:
+    - set system host-name 'VyOS-for-VPN-0${vyos_number}'
+    - set system login banner pre-login 'Welcome to the VyOS VPN Server on Azure'
+    - set interfaces ethernet eth0 description 'OUTSIDE'
+    - set system name-server '${dns_1}'
+    - set system name-server '${dns_2}'
+    - set service dns forwarding name-server '${dns_1}'
+    - set service dns forwarding listen-address '${wg_server_Private_IP}'
+    - set service dns forwarding allow-from '${wg_server_subnet_prefix}'
+    - set service dns forwarding no-serve-rfc1918
+    - set nat source rule 10 outbound-interface name 'eth0'
+    - set nat source rule 10 source address '${wg_server_subnet_prefix}'
+    - set nat source rule 10 translation address 'masquerade'
+    - set interfaces wireguard wg01 address '${wg_server_Private_IP}/24'
+    - set interfaces wireguard wg01 description 'RoadWarrior'
+    - set interfaces wireguard wg01 private-key '${wg_server_PrivKey}'
+    - set interfaces wireguard wg01 peer Clien-01 allowed-ips '0.0.0.0/0'
+    - set interfaces wireguard wg01 peer Clien-01 public-key '${wg_client_PubKey}'
+    - set interfaces wireguard wg01 port '${wg_server_port}'
+    - set interfaces wireguard wg01 peer Clien-01 preshared-key '${wg_client_PresharedKey}'
