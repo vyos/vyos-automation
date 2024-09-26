@@ -1,0 +1,57 @@
+#cloud-config
+vyos_config_commands:
+    - set system host-name 'VyOS-01'
+    - set system login banner pre-login 'Welcome to the VyOS on Azure'
+    - set interfaces ethernet eth0 description 'OUTSIDE'
+    - set interfaces ethernet eth1 description 'INSIDE'
+    - set system name-server '${dns_1}'
+    - set system name-server '${dns_2}'
+    - set service dns forwarding name-server '${dns_1}'
+    - set service dns forwarding listen-address '${vyos_01_priv_nic_ip}'
+    - set service dns forwarding allow-from '${vnet_01_priv_subnet_prefix}'
+    - set service dns forwarding no-serve-rfc1918
+    - set nat source rule 10 outbound-interface name 'eth0'
+    - set nat source rule 10 source address '${vnet_01_priv_subnet_prefix}'
+    - set nat source rule 10 translation address 'masquerade'
+    - set vpn ipsec interface 'eth0'
+    - set vpn ipsec esp-group AZURE lifetime '3600'
+    - set vpn ipsec esp-group AZURE mode 'tunnel'
+    - set vpn ipsec esp-group AZURE pfs 'dh-group2'
+    - set vpn ipsec esp-group AZURE proposal 1 encryption 'aes256'
+    - set vpn ipsec esp-group AZURE proposal 1 hash 'sha1'
+    - set vpn ipsec ike-group AZURE dead-peer-detection action 'restart'
+    - set vpn ipsec ike-group AZURE dead-peer-detection interval '15'
+    - set vpn ipsec ike-group AZURE dead-peer-detection timeout '30'
+    - set vpn ipsec ike-group AZURE ikev2-reauth
+    - set vpn ipsec ike-group AZURE key-exchange 'ikev2'
+    - set vpn ipsec ike-group AZURE lifetime '28800'
+    - set vpn ipsec ike-group AZURE proposal 1 dh-group '2'
+    - set vpn ipsec ike-group AZURE proposal 1 encryption 'aes256'
+    - set vpn ipsec ike-group AZURE proposal 1 hash 'sha1'
+    - set vpn ipsec ike-group AZURE close-action start
+    - set vpn ipsec option disable-route-autoinstall
+    - set interfaces vti vti1 address '10.1.100.11/32'
+    - set interfaces vti vti1 description 'Tunnel VyOS 02'
+    - set interfaces vti vti1 ip adjust-mss '1350'
+    - set protocols static route 10.2.100.11/32 interface vti1
+    - set vpn ipsec authentication psk VyOS id '${public_ip_address_01}'
+    - set vpn ipsec authentication psk VyOS id '${on_prem_public_ip_address}'
+    - set vpn ipsec authentication psk VyOS secret 'ch00s3-4-s3cur3-psk'
+    - set vpn ipsec site-to-site peer VyOS-02 authentication local-id '${public_ip_address_01}'
+    - set vpn ipsec site-to-site peer VyOS-02 authentication mode 'pre-shared-secret'
+    - set vpn ipsec site-to-site peer VyOS-02 authentication remote-id '${on_prem_public_ip_address}'
+    - set vpn ipsec site-to-site peer VyOS-02 connection-type 'none'
+    - set vpn ipsec site-to-site peer VyOS-02 description 'AZURE TUNNEL to VyOS on NET 02'
+    - set vpn ipsec site-to-site peer VyOS-02 ike-group 'AZURE'
+    - set vpn ipsec site-to-site peer VyOS-02 ikev2-reauth 'inherit'
+    - set vpn ipsec site-to-site peer VyOS-02 local-address '${vyos_01_pub_nic_ip}'
+    - set vpn ipsec site-to-site peer VyOS-02 remote-address '${on_prem_public_ip_address}'
+    - set vpn ipsec site-to-site peer VyOS-02 vti bind 'vti1'
+    - set vpn ipsec site-to-site peer VyOS-02 vti esp-group 'AZURE'
+    - set protocols bgp system-as '${vnet_01_bgp_as_number}'
+    - set protocols bgp address-family ipv4-unicast network ${vnet_01_priv_subnet_prefix}
+    - set protocols bgp neighbor 10.2.100.11 remote-as '${on_prem_bgp_as_number}'
+    - set protocols bgp neighbor 10.2.100.11 address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor 10.2.100.11 timers holdtime '30'
+    - set protocols bgp neighbor 10.2.100.11 timers keepalive '10'
+    - set protocols bgp neighbor 10.2.100.11 disable-connected-check
