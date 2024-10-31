@@ -1,0 +1,812 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VyOS Networks CloudFormation template to deploy a VPC with public
+  and private subnets, an Internet gateway, Route tables, ENIs, Elastic IP
+  Address and a VyOS instance with subscription (Pay As You Go) and configures
+  VyOS instance via user-data (cloud-init).
+
+Parameters:
+  ExistingVPCId:
+    Description: ID of an existing VPC
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^vpc-[0-9a-fA-F]{8,17}$
+    ConstraintDescription: Must be a valid VPC ID or empty.
+
+  ExistingPublicSubnetId:
+    Description: ID of an existing public subnet
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^subnet-[0-9a-fA-F]{8,17}$
+    ConstraintDescription: Must be a valid public subnet ID or empty.
+
+  ExistingPrivateSubnetId:
+    Description: ID of an existing private subnet
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^subnet-[0-9a-fA-F]{8,17}$
+    ConstraintDescription: Must be a valid private subnet ID or empty.
+
+  VPCName:
+    Description: Name of the VPC
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^.{1,128}$
+    MaxLength: 128
+    ConstraintDescription: Must be empty or between 1 and 128 characters.
+
+  VPCCidrBlock:
+    Description: CIDR block for the VPC
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$|^(172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$|^(192\.168\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Must be a valid IPv4 CIDR notation within private IP
+      ranges based on RFC 1918, with subnet sizes between /16 and /28, or can be
+      empty if we deploy VyOS instance to the existig VPC.
+
+  PublicSubnetCidr:
+    Description: CIDR block for the Public Subnet
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$|^(172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$|^(192\.168\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Must be a valid IPv4 CIDR notation within private IP
+      ranges based on RFC 1918, with subnet sizes between /16 and /28.
+
+  PrivateSubnetCidr:
+    Description: CIDR block for the Private Subnet
+    Type: String
+    Default: ''
+    AllowedPattern: ^$|^(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$|^(172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$|^(192\.168\.[0-9]{1,3}\.[0-9]{1,3}\/([1-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Must be a valid IPv4 CIDR notation within private IP
+      ranges based on RFC 1918, with subnet sizes between /16 and /28.
+
+  InstanceType:
+    Description: EC2 instance type for VyOS deployment
+    Type: String
+    Default: c5n.large
+    AllowedValues:
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - t3a.xlarge
+      - t3a.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5a.large
+      - m5a.xlarge
+      - m5a.2xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - m5n.large
+      - m5n.xlarge
+      - m5n.2xlarge
+      - m5n.4xlarge
+      - m5n.8xlarge
+      - m5n.12xlarge
+      - m5zn.large
+      - m5zn.xlarge
+      - m5zn.2xlarge
+      - m5zn.3xlarge
+      - m5zn.6xlarge
+      - m5zn.12xlarge
+      - m6i.large
+      - m6i.xlarge
+      - m6i.2xlarge
+      - m6i.4xlarge
+      - m6i.8xlarge
+      - m6i.12xlarge
+      - m6i.16xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5d.9xlarge
+      - c5a.large
+      - c5a.xlarge
+      - c5a.2xlarge
+      - c5a.4xlarge
+      - c5a.8xlarge
+      - c5n.large
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
+      - c5n.9xlarge
+      - c6i.large
+      - c6i.xlarge
+      - c6i.2xlarge
+      - c6i.4xlarge
+      - c6i.8xlarge
+      - c6i.12xlarge
+      - c6i.16xlarge
+      - c6i.24xlarge
+      - m6a.large
+      - m6a.xlarge
+      - m6a.2xlarge
+      - m6a.4xlarge
+      - m6a.8xlarge
+      - m6a.12xlarge
+      - m6a.16xlarge
+      - m6in.large
+      - m6in.xlarge
+      - m6in.2xlarge
+      - m6in.4xlarge
+      - m6in.8xlarge
+      - m6in.12xlarge
+      - m6in.16xlarge
+      - m6in.24xlarge
+      - m6in.32xlarge
+      - m6in.metal
+      - m7i.large
+      - m7i.xlarge
+      - m7i.2xlarge
+      - m7i.4xlarge
+      - m7i.8xlarge
+      - m7i-flex.large
+      - m7i-flex.xlarge
+      - m7i-flex.2xlarge
+      - m7i-flex.4xlarge
+      - m7i-flex.8xlarge
+
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must not be empty
+
+  VyOSPublicENIip:
+    Description: Private IP address for VyOS instance ENI
+    Type: String
+    AllowedPattern: ^(10\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|172\.(?:1[6-9]|2[0-9]|3[01])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|192\.168\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]))$
+    ConstraintDescription: Must be a valid IP address in the Public Subnet CIDR block
+
+  VyOSPrivENIip:
+    Description: Private IP address for VyOS instance ENI
+    Type: String
+    AllowedPattern: ^(10\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|172\.(?:1[6-9]|2[0-9]|3[01])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])|192\.168\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]))$
+    ConstraintDescription: Must be a valid IP address in the Private Subnet CIDR block
+
+  OnPremPublicIPAddress:
+    Description: The public IP address for the on-premise VPN endpoint
+    Type: String
+    Default: 192.0.2.1
+    AllowedPattern: ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+    ConstraintDescription: Must be a valid IPv4 public address.
+
+  VyOSBGPASNumber:
+    Description: The BGP Autonomous System Number for VyOS
+    Type: Number
+    Default: 65001
+    MinValue: 1
+    MaxValue: 65535
+    ConstraintDescription: Must be a valid BGP ASN between 1 and 65535.
+
+  OnPremBGPASNumber:
+    Description: The BGP Autonomous System Number for the on-premise VPN endpoint
+    Type: Number
+    Default: 65002
+    MinValue: 1
+    MaxValue: 65535
+    ConstraintDescription: Must be a valid BGP ASN between 1 and 65535.
+
+  DNS1:
+    Description: Primary DNS server
+    Type: String
+    Default: 8.8.8.8
+    AllowedPattern: ^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+    ConstraintDescription: Must be a valid DNS server IP address.
+
+  DNS2:
+    Description: Secondary DNS server
+    Type: String
+    Default: 8.8.4.4
+    AllowedPattern: ^$|^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$
+    ConstraintDescription: Must be a valid DNS server IP address.
+
+  SSHAllowedIP:
+    Description: The IP subnet allowed to SSH into the VyOS instance
+    Type: String
+    Default: 192.0.2.0/24
+    AllowedPattern: ^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(/(2[4-9]|3[0-2]))$
+    ConstraintDescription: Must be a valid IPv4 CIDR within range /24 to /32
+
+  # VyOS AMI Aliase. 
+  # If you set "latest" option CloudFormation will choose the latest version of the VyOS. 
+  # But if you want to deploy a more specific version you should change the latest to part of the alias like /aws/.../1.3.6, /aws/.../1.4.0.
+  # After changing this please look at the Resources part "VyOSInstance"s User-Data field because there could be VyOS CLI commands changes.
+  # Check VyOS official documentation for command reference.
+
+  AmiAlias:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/marketplace/prod-ev235jujteaom/latest
+    Description: AMI Alias of the VyOS instance
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: 'Current VPC configuration. If you want deploy instance to your
+            existing VPC please add VPC and Subnet IDs to regareded fields:'
+        Parameters:
+          - ExistingVPCId
+          - ExistingPublicSubnetId
+          - ExistingPrivateSubnetId
+      - Label:
+          default: 'New VPC and CIDR configuration. If you want to deploy instance to new
+            VPC please fill regarded fields:'
+        Parameters:
+          - VPCName
+          - VPCCidrBlock
+      - Label:
+          default: 'Subnet CIDRs configurations. Add existing or new subnet CIDRs to the
+            regarded fields:'
+        Parameters:
+          - PublicSubnetCidr
+          - PrivateSubnetCidr
+      - Label:
+          default: 'VyOS Instance Configuration:'
+        Parameters:
+          - InstanceType
+          - KeyName
+          - VyOSPublicENIip
+          - VyOSPrivENIip
+          - VyOSBGPASNumber
+          - DNS1
+          - DNS2
+          - SSHAllowedIP
+      - Label:
+          default: 'On-Premise instance parameters:'
+        Parameters:
+          - OnPremPublicIPAddress
+          - OnPremBGPASNumber
+
+    ParameterLabels:
+      ExistingVPCId:
+        default: Existing VPC ID (optional if deploy existing VPC)
+      ExistingPublicSubnetId:
+        default: Existing Public Subnet ID (optional if deploy existing VPC)
+      ExistingPrivateSubnetId:
+        default: Existing Private Subnet ID (optional if deploy existing VPC)
+      VPCName:
+        default: VPC Name (required if you deploy new VPC)
+      VPCCidrBlock:
+        default: VPC CIDR Block (required if you deploy new VPC)
+      PublicSubnetCidr:
+        default: Public Subnet CIDR (required)
+      PrivateSubnetCidr:
+        default: Private Subnet CIDR (required)
+      InstanceType:
+        default: Instance Type (required)
+      KeyName:
+        default: EC2 KeyPair Name (required)
+      VyOSPublicENIip:
+        default: VyOS Public ENI IP (required)
+      VyOSPrivENIip:
+        default: VyOS Private ENI IP (required)
+      OnPremPublicIPAddress:
+        default: On-Premies Public IP Address (required)
+      VyOSBGPASNumber:
+        default: VyOS BGP ASN (required)
+      OnPremBGPASNumber:
+        default: On-Premies BGP ASN (required)
+      DNS1:
+        default: Primary DNS Server IP Address (required)
+      DNS2:
+        default: Secondary DNS Server IP Address (optional)
+      SSHAllowedIP:
+        default: SSH Allowed IP Subnet (required)
+
+Conditions:
+  CreateVPC: !Equals
+    - !Ref ExistingVPCId
+    - ''
+  CreatePublicSubnet: !Equals
+    - !Ref ExistingPublicSubnetId
+    - ''
+  CreatePrivateSubnet: !Equals
+    - !Ref ExistingPrivateSubnetId
+    - ''
+
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Condition: CreateVPC
+    Properties:
+      CidrBlock: !Ref VPCCidrBlock
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+        - Key: Name
+          Value: !Ref VPCName
+
+  # Subnets
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Condition: CreatePublicSubnet
+    DependsOn: VPC
+    Properties:
+      VpcId: !If
+        - CreateVPC
+        - !Ref VPC
+        - !Ref ExistingVPCId
+      CidrBlock: !Ref PublicSubnetCidr
+      MapPublicIpOnLaunch: 'true'
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      Tags:
+        - Key: Name
+          Value: Public Subnet
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Condition: CreatePrivateSubnet
+    DependsOn: VPC
+    Properties:
+      VpcId: !If
+        - CreateVPC
+        - !Ref VPC
+        - !Ref ExistingVPCId
+      CidrBlock: !Ref PrivateSubnetCidr
+      MapPublicIpOnLaunch: 'false'
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      Tags:
+        - Key: Name
+          Value: Private Subnet
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Condition: CreateVPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Internet Gateway
+        - Key: Created by
+          Value: CloudFormation
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: CreateVPC
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Route Tables
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Condition: CreateVPC
+    Properties:
+      VpcId: !If
+        - CreateVPC
+        - !Ref VPC
+        - !Ref ExistingVPCId
+      Tags:
+        - Key: Name
+          Value: Public Route Table
+        - Key: Created by
+          Value: CloudFormation
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Condition: CreateVPC
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !If
+        - CreateVPC
+        - !Ref InternetGateway
+        - !Ref ExistingPublicSubnetId
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateVPC
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Groups
+  VyOSPublicSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable access from outside
+      VpcId: !If
+        - CreateVPC
+        - !Ref VPC
+        - !Ref ExistingVPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHAllowedIP
+          Description: Allow SSH access
+        - IpProtocol: udp
+          FromPort: 51820
+          ToPort: 51820
+          CidrIp: 0.0.0.0/0
+          Description: Allow WireGuard VPN access
+        - IpProtocol: udp
+          FromPort: 1194
+          ToPort: 1194
+          CidrIp: 0.0.0.0/0
+          Description: Allow OpenVPN access
+        - IpProtocol: udp
+          FromPort: 500
+          ToPort: 500
+          CidrIp: 0.0.0.0/0
+          Description: Allow IPSec VPN access (ISAKMP)
+        - IpProtocol: udp
+          FromPort: 1701
+          ToPort: 1701
+          CidrIp: 0.0.0.0/0
+          Description: Allow L2TP VPN access
+        - IpProtocol: udp
+          FromPort: 4500
+          ToPort: 4500
+          CidrIp: 0.0.0.0/0
+          Description: Allow IPSec NAT Traversal
+      Tags:
+        - Key: Name
+          Value: PublicSG
+        - Key: Created by
+          Value: CloudFormation
+
+  VyOSPrivateSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable access from inside
+      VpcId: !If
+        - CreateVPC
+        - !Ref VPC
+        - !Ref ExistingVPCId
+      SecurityGroupIngress:
+        - IpProtocol: -1 
+          CidrIp: 0.0.0.0/0
+          Description: Allow all protocols and ports
+      Tags:
+        - Key: Name
+          Value: PrivateSG
+        - Key: Created by
+          Value: CloudFormation
+
+  # ENIs
+  PublicENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !If
+        - CreatePublicSubnet
+        - !Ref PublicSubnet
+        - !Ref ExistingPublicSubnetId
+      Description: Public Network Interface
+      PrivateIpAddress: !Ref VyOSPublicENIip
+      GroupSet:
+        - !Ref VyOSPublicSG
+      Tags:
+        - Key: Name
+          Value: PublicENI
+        - Key: Created by
+          Value: CloudFormation
+
+  PrivateENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !If
+        - CreatePrivateSubnet
+        - !Ref PrivateSubnet
+        - !Ref ExistingPrivateSubnetId
+      Description: Private Network Interface
+      PrivateIpAddress: !Ref VyOSPrivENIip
+      GroupSet:
+        - !Ref VyOSPrivateSG
+      Tags:
+        - Key: Name
+          Value: PrivateENI
+        - Key: Created by
+          Value: CloudFormation
+
+  # VyOS Instance
+  VyOSInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      ImageId: !Ref AmiAlias
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref PublicENI
+          DeviceIndex: 0
+        - NetworkInterfaceId: !Ref PrivateENI
+          DeviceIndex: 1
+      UserData: !Base64
+        Fn::Sub: |
+          #cloud-config
+          vyos_config_commands:
+            # Basic VyOS Configuration
+            - set system host-name 'VyOS-on-AWS'
+            - set interfaces ethernet eth0 description 'OUTSIDE'
+            - set interfaces ethernet eth1 description 'INSIDE'
+            - set system login banner pre-login 'Welcome to the VyOS on AWS'
+            - set interfaces ethernet eth1 dhcp-options no-default-route
+            # DNS and DNS Forwarding Configuration
+            - set system name-server '${DNS1}'
+            - set system name-server '${DNS2}'
+            - set service dns forwarding name-server '${DNS1}'
+            - set service dns forwarding listen-address '${VyOSPrivENIip}'
+            - set service dns forwarding allow-from '${PrivateSubnetCidr}'
+            - set service dns forwarding no-serve-rfc1918
+            # Source NAT (SNAT) Configuration
+            - set nat source rule 10 outbound-interface name 'eth0'
+            - set nat source rule 10 source address '${PrivateSubnetCidr}'
+            - set nat source rule 10 translation address 'masquerade'
+            # Site-to-Site VPN Configuration
+            - set vpn ipsec interface 'eth0'
+            - set vpn ipsec esp-group AWS-POC lifetime '3600'
+            - set vpn ipsec esp-group AWS-POC mode 'tunnel'
+            - set vpn ipsec esp-group AWS-POC pfs 'dh-group2'
+            - set vpn ipsec esp-group AWS-POC proposal 1 encryption 'aes256'
+            - set vpn ipsec esp-group AWS-POC proposal 1 hash 'sha1'
+            - set vpn ipsec ike-group AWS-POC dead-peer-detection action 'restart'
+            - set vpn ipsec ike-group AWS-POC dead-peer-detection interval '15'
+            - set vpn ipsec ike-group AWS-POC dead-peer-detection timeout '30'
+            - set vpn ipsec ike-group AWS-POC ikev2-reauth
+            - set vpn ipsec ike-group AWS-POC key-exchange 'ikev2'
+            - set vpn ipsec ike-group AWS-POC lifetime '28800'
+            - set vpn ipsec ike-group AWS-POC proposal 1 dh-group '2'
+            - set vpn ipsec ike-group AWS-POC proposal 1 encryption 'aes256'
+            - set vpn ipsec ike-group AWS-POC proposal 1 hash 'sha1'
+            - set vpn ipsec ike-group AWS-POC close-action start
+            - set vpn ipsec option disable-route-autoinstall
+            - set interfaces vti vti1 address '10.1.100.11/32'
+            - set interfaces vti vti1 description 'Tunnel VyOS 02'
+            - set interfaces vti vti1 ip adjust-mss '1350'
+            - set protocols static route 10.2.100.11/32 interface vti1
+            - set vpn ipsec authentication psk VyOS id '${VyOSPublicENIip}'
+            - set vpn ipsec authentication psk VyOS id '${OnPremPublicIPAddress}'
+            - set vpn ipsec authentication psk VyOS secret 'ch00s3-4-s3cur3-psk'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem authentication local-id '${VyOSPublicENIip}'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem authentication mode 'pre-shared-secret'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem authentication remote-id '${OnPremPublicIPAddress}'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem connection-type 'none'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem description 'AWS-POC TUNNEL to VyOS on Prem'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem ike-group 'AWS-POC'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem ikev2-reauth 'inherit'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem local-address '${VyOSPublicENIip}'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem remote-address '${OnPremPublicIPAddress}'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem vti bind 'vti1'
+            - set vpn ipsec site-to-site peer VyOS-on-Prem vti esp-group 'AWS-POC'
+            # BGP Configuration
+            - set protocols bgp system-as '${VyOSBGPASNumber}'
+            - set protocols bgp address-family ipv4-unicast network ${PrivateSubnetCidr}
+            - set protocols bgp neighbor 10.2.100.11 remote-as '${OnPremBGPASNumber}'
+            - set protocols bgp neighbor 10.2.100.11 address-family ipv4-unicast soft-reconfiguration inbound
+            - set protocols bgp neighbor 10.2.100.11 timers holdtime '30'
+            - set protocols bgp neighbor 10.2.100.11 timers keepalive '10'
+            - set protocols bgp neighbor 10.2.100.11 disable-connected-check
+            # Firewall Groups (Collections of IP addresses, networks, ports, MAC addresses, domains, or interfaces)
+            - set firewall group network-group Local network '${PrivateSubnetCidr}'
+            - set firewall group port-group dns_ports port '53'
+            - set firewall group port-group mail_ports port '110'
+            - set firewall group port-group mail_ports port '25'
+            - set firewall group port-group web_ports port '443'
+            - set firewall group port-group web_ports port '8080'
+            - set firewall group port-group web_ports port '80'
+            # Firewall Forwarding Rules (Traffic Transiting Through the VyOS Instance)
+            - set firewall ipv4 forward filter default-action 'drop'    #  Default-action 'drop' means drop non allowed (which allowed by rules) transit traffic.
+            # These rules blocks all traffic which was not initiated from the internal/LAN side first.
+            - set firewall ipv4 forward filter rule 10 action 'accept'
+            - set firewall ipv4 forward filter rule 10 state 'established'
+            - set firewall ipv4 forward filter rule 10 state 'related'
+            - set firewall ipv4 forward filter rule 11 action 'drop'
+            - set firewall ipv4 forward filter rule 11 state 'invalid'
+            # These rules allow ICMP traffic from outside in (from WAN to LAN)
+            - set firewall ipv4 forward filter rule 20 action 'accept'
+            - set firewall ipv4 forward filter rule 20 description 'Allow ICMP'
+            - set firewall ipv4 forward filter rule 20 icmp type-name 'echo-request'
+            - set firewall ipv4 forward filter rule 20 inbound-interface name 'eth0'
+            - set firewall ipv4 forward filter rule 20 protocol 'icmp'
+            - set firewall ipv4 forward filter rule 20 state 'new'
+            # These rules allow forward SSH traffic from outside in (from WAN to LAN) and rate limit it to 4 requests per minute. This blocks brute-forcing attempts
+            - set firewall ipv4 forward filter rule 30 action 'drop'
+            - set firewall ipv4 forward filter rule 30 description 'Mitigate SSH brute-forcing'
+            - set firewall ipv4 forward filter rule 30 destination port '22'
+            - set firewall ipv4 forward filter rule 30 inbound-interface name 'eth0'
+            - set firewall ipv4 forward filter rule 30 protocol 'tcp'
+            - set firewall ipv4 forward filter rule 30 recent count '4'
+            - set firewall ipv4 forward filter rule 30 recent time 'minute'
+            - set firewall ipv4 forward filter rule 30 state 'new'
+            - set firewall ipv4 forward filter rule 31 action 'accept'
+            - set firewall ipv4 forward filter rule 31 description 'Allow SSH'
+            - set firewall ipv4 forward filter rule 31 destination port '22'
+            - set firewall ipv4 forward filter rule 31 inbound-interface name 'eth0'
+            - set firewall ipv4 forward filter rule 31 protocol 'tcp'
+            - set firewall ipv4 forward filter rule 31 state 'new'
+            # These rules allow ICMP traffic from inside out (from LAN to WAN)
+            - set firewall ipv4 forward filter rule 110 action 'accept'
+            - set firewall ipv4 forward filter rule 110 description 'LAN clients ICMP'
+            - set firewall ipv4 forward filter rule 110 icmp type-name 'echo-request'
+            - set firewall ipv4 forward filter rule 110 inbound-interface name 'eth1'
+            - set firewall ipv4 forward filter rule 110 state 'new'
+            # These rules allow forward SSH traffic from indide out (from LAN to WAN) and rate limit it to 4 requests per minute. This blocks brute-forcing attempts
+            - set firewall ipv4 forward filter rule 120 action 'drop'
+            - set firewall ipv4 forward filter rule 120 description 'Mitigate clients SSH brute-forcing'
+            - set firewall ipv4 forward filter rule 120 destination port '22'
+            - set firewall ipv4 forward filter rule 120 inbound-interface name 'eth1'
+            - set firewall ipv4 forward filter rule 120 protocol 'tcp'
+            - set firewall ipv4 forward filter rule 120 recent count '4'
+            - set firewall ipv4 forward filter rule 120 recent time 'minute'
+            - set firewall ipv4 forward filter rule 120 state 'new'
+            - set firewall ipv4 forward filter rule 121 action 'accept'
+            - set firewall ipv4 forward filter rule 121 description 'Allow clients SSH'
+            - set firewall ipv4 forward filter rule 121 destination port '22'
+            - set firewall ipv4 forward filter rule 121 inbound-interface name 'eth1'
+            - set firewall ipv4 forward filter rule 121 protocol 'tcp'
+            - set firewall ipv4 forward filter rule 121 state 'new'
+            # Firewall input rules means firewall (VyOS instance) traffic toward the instance itself
+            - set firewall ipv4 input filter default-action 'drop'  #  Default-action 'drop' means drop non allowed (which allowed by rules) inbound traffic.
+            # This configuration creates a proper stateful firewall that blocks all traffic which was not initiated from the internal/LAN side first.
+            - set firewall ipv4 input filter rule 10 action 'accept'
+            - set firewall ipv4 input filter rule 10 description 'Allow established/related'
+            - set firewall ipv4 input filter rule 10 state 'established'
+            - set firewall ipv4 input filter rule 10 state 'related'
+            - set firewall ipv4 input filter rule 11 action 'drop'
+            - set firewall ipv4 input filter rule 11 state 'invalid'
+            # These rules allowes WireGuard, OpenVPN, ESP, ISAKMP, IPSec NAT Traversal, L2TP and ICMP traffic towards VyOS instance via eth0 interface (WAN interface)
+            - set firewall ipv4 input filter rule 20 action 'accept'
+            - set firewall ipv4 input filter rule 20 description 'WireGuard_IN'
+            - set firewall ipv4 input filter rule 20 destination port '51820'
+            - set firewall ipv4 input filter rule 20 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 20 log
+            - set firewall ipv4 input filter rule 20 protocol 'udp'
+            - set firewall ipv4 input filter rule 30 action 'accept'
+            - set firewall ipv4 input filter rule 30 description 'OpenVPN_IN'
+            - set firewall ipv4 input filter rule 30 destination port '1194'
+            - set firewall ipv4 input filter rule 30 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 30 log
+            - set firewall ipv4 input filter rule 30 protocol 'udp'
+            - set firewall ipv4 input filter rule 40 action 'accept'
+            - set firewall ipv4 input filter rule 40 description 'Allow ESP'
+            - set firewall ipv4 input filter rule 40 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 40 protocol 'esp'
+            - set firewall ipv4 input filter rule 50 action 'accept'
+            - set firewall ipv4 input filter rule 50 description 'Allow ISAKMP'
+            - set firewall ipv4 input filter rule 50 destination port '500'
+            - set firewall ipv4 input filter rule 50 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 50 protocol 'udp'
+            - set firewall ipv4 input filter rule 60 action 'accept'
+            - set firewall ipv4 input filter rule 60 description 'IPSec NAT Traversal'
+            - set firewall ipv4 input filter rule 60 destination port '4500'
+            - set firewall ipv4 input filter rule 60 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 60 protocol 'udp'
+            - set firewall ipv4 input filter rule 70 action 'accept'
+            - set firewall ipv4 input filter rule 70 description 'Allow L2TP'
+            - set firewall ipv4 input filter rule 70 destination port '1701'
+            - set firewall ipv4 input filter rule 70 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 70 ipsec match-ipsec
+            - set firewall ipv4 input filter rule 70 protocol 'udp'
+            - set firewall ipv4 input filter rule 80 action 'accept'
+            - set firewall ipv4 input filter rule 80 description 'Allow ICMP'
+            - set firewall ipv4 input filter rule 80 icmp type-name 'echo-request'
+            - set firewall ipv4 input filter rule 80 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 80 protocol 'icmp'
+            - set firewall ipv4 input filter rule 80 state 'new'
+            # These rules allow forward SSH traffic towards VyOS instance and rate limit it to 4 requests per minute. This blocks brute-forcing attempts
+            - set firewall ipv4 input filter rule 90 action 'drop'
+            - set firewall ipv4 input filter rule 90 description 'Mitigate SSH brute-forcing'
+            - set firewall ipv4 input filter rule 90 destination port '22'
+            - set firewall ipv4 input filter rule 90 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 90 protocol 'tcp'
+            - set firewall ipv4 input filter rule 90 recent count '4'
+            - set firewall ipv4 input filter rule 90 recent time 'minute'
+            - set firewall ipv4 input filter rule 90 state 'new'
+            - set firewall ipv4 input filter rule 91 action 'accept'
+            - set firewall ipv4 input filter rule 91 description 'Allow SSH'
+            - set firewall ipv4 input filter rule 91 destination port '22'
+            - set firewall ipv4 input filter rule 91 inbound-interface name 'eth0'
+            - set firewall ipv4 input filter rule 91 protocol 'tcp'
+            - set firewall ipv4 input filter rule 91 state 'new'
+            # These rules allowes ESP, ISAKMP, IPSec NAT Traversal, BGP and ICMP traffic towards VyOS instance via VTI interface
+            - set firewall ipv4 input filter rule 140 action 'accept'
+            - set firewall ipv4 input filter rule 140 description 'Allow ESP'
+            - set firewall ipv4 input filter rule 140 inbound-interface name 'vti1'
+            - set firewall ipv4 input filter rule 140 protocol 'esp'
+            - set firewall ipv4 input filter rule 150 action 'accept'
+            - set firewall ipv4 input filter rule 150 description 'Allow ISAKMP'
+            - set firewall ipv4 input filter rule 150 destination port '500'
+            - set firewall ipv4 input filter rule 150 inbound-interface name 'vti1'
+            - set firewall ipv4 input filter rule 150 protocol 'udp'
+            - set firewall ipv4 input filter rule 160 action 'accept'
+            - set firewall ipv4 input filter rule 160 description 'IPSec NAT Traversal'
+            - set firewall ipv4 input filter rule 160 destination port '4500'
+            - set firewall ipv4 input filter rule 160 inbound-interface name 'vti1'
+            - set firewall ipv4 input filter rule 160 protocol 'udp'
+            - set firewall ipv4 input filter rule 170 action 'accept'
+            - set firewall ipv4 input filter rule 170 description 'Allow ICMP'
+            - set firewall ipv4 input filter rule 170 icmp type-name 'echo-request'
+            - set firewall ipv4 input filter rule 170 inbound-interface name 'vti1'
+            - set firewall ipv4 input filter rule 170 protocol 'icmp'
+            - set firewall ipv4 input filter rule 170 state 'new'
+            - set firewall ipv4 input filter rule 180 action 'accept'
+            - set firewall ipv4 input filter rule 180 description 'Allow BGP'
+            - set firewall ipv4 input filter rule 180 destination port '179'
+            - set firewall ipv4 input filter rule 180 inbound-interface name 'vti1'
+            - set firewall ipv4 input filter rule 180 protocol 'tcp'
+      Tags:
+        - Key: Name
+          Value: VyOS-Instance
+        - Key: Created by
+          Value: CloudFormation
+
+  # Elastic IP
+  VyOSPublicIPAddress:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: VyOS-Instance-EIP
+        - Key: Created by
+          Value: CloudFormation
+
+  # Elastic IP Association
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      NetworkInterfaceId: !Ref PublicENI
+      AllocationId: !GetAtt VyOSPublicIPAddress.AllocationId
+
+# Outputs
+Outputs:
+  VPCId:
+    Description: VPC Id
+    Value: !If
+      - CreateVPC
+      - !Ref VPC
+      - !Ref ExistingVPCId
+  PublicSubnetId:
+    Description: Public Subnet Id
+    Value: !If
+      - CreatePublicSubnet
+      - !Ref PublicSubnet
+      - !Ref ExistingPublicSubnetId
+  PrivateSubnetId:
+    Description: Private Subnet Id
+    Value: !If
+      - CreatePrivateSubnet
+      - !Ref PrivateSubnet
+      - !Ref ExistingPrivateSubnetId
+  VyOSInstanceId:
+    Description: Instance ID of the VyOS instance
+    Value: !Ref VyOSInstance
+  VyOSPublicIp:
+    Description: Public IP address of the VyOS instance
+    Value: !Ref VyOSPublicIPAddress
+  VyOSUsername:
+    Description: Username for SSH access to the VyOS instance
+    Value: vyos
+  KeyPairName:
+    Description: Name of the KeyPair used for SSH access
+    Value: !Ref KeyName
