@@ -1,0 +1,7 @@
+#cloud-config
+vyos_config_commands:
+    - set system host-name 'VyOS-for-Lab'
+    - set system login banner pre-login 'Welcome to the VyOS for Lab on AWS'
+    - set interfaces ethernet eth0 description 'WAN'
+    - set interfaces ethernet eth1 description 'LAN'
+    - set interfaces ethernet eth1 dhcp-options no-default-route
