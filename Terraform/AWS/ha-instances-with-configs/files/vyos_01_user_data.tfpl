@@ -7,7 +7,7 @@ vyos_config_commands:
     - set interfaces ethernet eth1 dhcp-options no-default-route
     - set system name-server '${dns}'
     - set service dns forwarding name-server '${dns}'
-    - set service dns forwarding listen-address '${vyos_priv_nic_ip}'
+    - set service dns forwarding listen-address '${vyos_01_priv_nic_ip}'
     - set service dns forwarding allow-from '${transit_vpc_cidr}'
     - set service dns forwarding no-serve-rfc1918
     - set nat source rule 10 outbound-interface name 'eth0'
@@ -33,20 +33,20 @@ vyos_config_commands:
     - set interfaces vti vti1 description 'Tunnel for VyOS in Azure'
     - set interfaces vti vti1 ip adjust-mss '1350'
     - set protocols static route 10.2.100.11/32 interface vti1
-    - set protocols static route ${vyos_pub_subnet} blackhole distance '254'
-    - set protocols static route ${vyos_priv_subnet} blackhole distance '254'
-    - set vpn ipsec authentication psk VyOS id '${vyos_public_ip_address}'
-    - set vpn ipsec authentication psk VyOS id '${on_prem_public_ip_address}'
+    - set protocols static route ${vyos_01_pub_subnet} blackhole distance '254'
+    - set protocols static route ${vyos_01_priv_subnet} blackhole distance '254'
+    - set vpn ipsec authentication psk VyOS id '${vyos_01_public_ip}'
+    - set vpn ipsec authentication psk VyOS id '${on_prem_public_ip}'
     - set vpn ipsec authentication psk VyOS secret 'ch00s3-4-s3cur3-psk'
-    - set vpn ipsec site-to-site peer AZURE authentication local-id '${vyos_public_ip_address}'
+    - set vpn ipsec site-to-site peer AZURE authentication local-id '${vyos_01_public_ip}'
     - set vpn ipsec site-to-site peer AZURE authentication mode 'pre-shared-secret'
-    - set vpn ipsec site-to-site peer AZURE authentication remote-id '${on_prem_public_ip_address}'
+    - set vpn ipsec site-to-site peer AZURE authentication remote-id '${on_prem_public_ip}'
     - set vpn ipsec site-to-site peer AZURE connection-type 'initiate'
     - set vpn ipsec site-to-site peer AZURE description 'TUNNEL to VyOS on AZURE'
     - set vpn ipsec site-to-site peer AZURE ike-group 'AZURE'
     - set vpn ipsec site-to-site peer AZURE ikev2-reauth 'inherit'
-    - set vpn ipsec site-to-site peer AZURE local-address '${vyos_pub_nic_ip}'
-    - set vpn ipsec site-to-site peer AZURE remote-address '${on_prem_public_ip_address}'
+    - set vpn ipsec site-to-site peer AZURE local-address '${vyos_01_pub_nic_ip}'
+    - set vpn ipsec site-to-site peer AZURE remote-address '${on_prem_public_ip}'
     - set vpn ipsec site-to-site peer AZURE vti bind 'vti1'
     - set vpn ipsec site-to-site peer AZURE vti esp-group 'AZURE'
     - set policy prefix-list AS65001-OUT rule 10 action 'permit'
@@ -72,15 +72,15 @@ vyos_config_commands:
     - set policy route-map AS65002-OUT rule 20 match ip address prefix-list 'AS65002-OUT'
     - set policy route-map AS65011-OUT rule 10 action 'permit'
     - set policy route-map AS65011-OUT rule 10 match ip address prefix-list 'AS65011-OUT'
-    - set protocols bfd peer ${vyos_02_pub_nic_ip_address} interval multiplier '3'
-    - set protocols bfd peer ${vyos_02_pub_nic_ip_address} interval receive '300'
-    - set protocols bfd peer ${vyos_02_pub_nic_ip_address} interval transmit '300'
+    - set protocols bfd peer ${vyos_02_pub_nic_ip} interval multiplier '3'
+    - set protocols bfd peer ${vyos_02_pub_nic_ip} interval receive '300'
+    - set protocols bfd peer ${vyos_02_pub_nic_ip} interval transmit '300'
+    - set protocols bfd peer ${route_server_endpoint_01_ip} interval multiplier '3'
+    - set protocols bfd peer ${route_server_endpoint_01_ip} interval receive '300'
+    - set protocols bfd peer ${route_server_endpoint_01_ip} interval transmit '300'
     - set protocols bfd peer 10.2.100.11 interval multiplier '3'
     - set protocols bfd peer 10.2.100.11 interval receive '300'
     - set protocols bfd peer 10.2.100.11 interval transmit '300'
-    - set protocols bfd peer 172.16.11.115 interval multiplier '3'
-    - set protocols bfd peer 172.16.11.115 interval receive '300'
-    - set protocols bfd peer 172.16.11.115 interval transmit '300'
     - set protocols bgp system-as '${vyos_bgp_as_number}'
     - set protocols bgp address-family ipv4-unicast network ${data_vpc_public_subnet}
     - set protocols bgp address-family ipv4-unicast redistribute connected 
@@ -91,18 +91,18 @@ vyos_config_commands:
     - set protocols bgp neighbor 10.2.100.11 bfd
     - set protocols bgp neighbor 10.2.100.11 disable-connected-check
     - set protocols bgp neighbor 10.2.100.11 update-source '10.1.100.11'
-    - set protocols bgp neighbor 172.16.11.115 address-family ipv4-unicast route-map export 'AS65011-OUT'
-    - set protocols bgp neighbor 172.16.11.115 address-family ipv4-unicast soft-reconfiguration inbound
-    - set protocols bgp neighbor 172.16.11.115 disable-connected-check
-    - set protocols bgp neighbor 172.16.11.115 remote-as '65011'
-    - set protocols bgp neighbor 172.16.11.115 timers holdtime '30'
-    - set protocols bgp neighbor 172.16.11.115 bfd
-    - set protocols bgp neighbor 172.16.11.115 update-source '${vyos_priv_nic_ip}'
-    - set protocols bgp neighbor ${vyos_02_pub_nic_ip_address} address-family ipv4-unicast nexthop-self force
-    - set protocols bgp neighbor ${vyos_02_pub_nic_ip_address} address-family ipv4-unicast route-map export 'AS65001-OUT'
-    - set protocols bgp neighbor ${vyos_02_pub_nic_ip_address} address-family ipv4-unicast soft-reconfiguration inbound
-    - set protocols bgp neighbor ${vyos_02_pub_nic_ip_address} disable-connected-check
-    - set protocols bgp neighbor ${vyos_02_pub_nic_ip_address} remote-as '${vyos_bgp_as_number}'
-    - set protocols bgp neighbor ${vyos_02_pub_nic_ip_address} timers holdtime '30'
-    - set protocols bgp neighbor ${vyos_02_pub_nic_ip_address} bfd
-    - set protocols bgp neighbor ${vyos_02_pub_nic_ip_address} update-source '${vyos_pub_nic_ip}'
+    - set protocols bgp neighbor ${vyos_02_pub_nic_ip} address-family ipv4-unicast nexthop-self force
+    - set protocols bgp neighbor ${vyos_02_pub_nic_ip} address-family ipv4-unicast route-map export 'AS65001-OUT'
+    - set protocols bgp neighbor ${vyos_02_pub_nic_ip} address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor ${vyos_02_pub_nic_ip} disable-connected-check
+    - set protocols bgp neighbor ${vyos_02_pub_nic_ip} remote-as '${vyos_bgp_as_number}'
+    - set protocols bgp neighbor ${vyos_02_pub_nic_ip} timers holdtime '30'
+    - set protocols bgp neighbor ${vyos_02_pub_nic_ip} bfd
+    - set protocols bgp neighbor ${vyos_02_pub_nic_ip} update-source '${vyos_01_pub_nic_ip}'
+    - set protocols bgp neighbor ${route_server_endpoint_01_ip} address-family ipv4-unicast route-map export 'AS65011-OUT'
+    - set protocols bgp neighbor ${route_server_endpoint_01_ip} address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor ${route_server_endpoint_01_ip} disable-connected-check
+    - set protocols bgp neighbor ${route_server_endpoint_01_ip} remote-as '${route_server_endpoint_bgp_as_number}'
+    - set protocols bgp neighbor ${route_server_endpoint_01_ip} timers holdtime '30'
+    - set protocols bgp neighbor ${route_server_endpoint_01_ip} bfd
+    - set protocols bgp neighbor ${route_server_endpoint_01_ip} update-source '${vyos_01_priv_nic_ip}'

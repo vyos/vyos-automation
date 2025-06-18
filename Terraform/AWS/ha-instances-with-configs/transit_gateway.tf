@@ -59,7 +59,7 @@ resource "aws_ec2_transit_gateway_route" "azure" {
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.transit_vpc_attachment.id
 }
 
-# TRANSIT GATEWAY ASSOCIATION and PROPAGATION
+# TRANSIT GATEWAY ASSOSIATION and PROPAGATION
 
 resource "aws_ec2_transit_gateway_route_table_association" "transit_vpc_rt_assoc" {
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.transit_vpc_attachment.id

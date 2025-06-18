@@ -142,7 +142,7 @@ variable "data_vpc_public_subnet_name" {
 }
 
 variable "data_vpc_private_subnet_name" {
-  description = "The name of the private subnet"
+  description = "The name of the private subnet 01"
   type        = string
   default     = "priv-subnet"
 }

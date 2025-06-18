@@ -11,10 +11,6 @@ output "data_vpc_instance_public_ip" {
   value = aws_instance.data_vpc_instance.public_ip
 }
 
-output "data_vpc_instance_nic_ip" {
-  value = aws_network_interface.data_vpc_instance_nic.private_ip
-}
-
 output "ssh_command_for_vyos_01" {
   value = "ssh -i keys/vyos_lab_private_key.pem vyos@${aws_instance.vyos_01.public_ip}"
 }
