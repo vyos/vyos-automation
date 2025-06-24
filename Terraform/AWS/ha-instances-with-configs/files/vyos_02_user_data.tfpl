@@ -1,0 +1,108 @@
+#cloud-config
+vyos_config_commands:
+    - set system host-name 'VyOS-02-on-AWS'
+    - set system login banner pre-login 'Welcome to the VyOS for DEMO on AWS'
+    - set interfaces ethernet eth0 description 'WAN'
+    - set interfaces ethernet eth1 description 'LAN'
+    - set interfaces ethernet eth1 dhcp-options no-default-route
+    - set system name-server '${dns}'
+    - set service dns forwarding name-server '${dns}'
+    - set service dns forwarding listen-address '${vyos_02_priv_nic_ip}'
+    - set service dns forwarding allow-from '${transit_vpc_cidr}'
+    - set service dns forwarding no-serve-rfc1918
+    - set nat source rule 10 outbound-interface name 'eth0'
+    - set nat source rule 10 source address '${transit_vpc_cidr}'
+    - set nat source rule 10 translation address 'masquerade'
+    - set vpn ipsec interface 'eth0'
+    - set vpn ipsec esp-group AZURE lifetime '3600'
+    - set vpn ipsec esp-group AZURE mode 'tunnel'
+    - set vpn ipsec esp-group AZURE pfs 'dh-group2'
+    - set vpn ipsec esp-group AZURE proposal 1 encryption 'aes256'
+    - set vpn ipsec esp-group AZURE proposal 1 hash 'sha1'
+    - set vpn ipsec ike-group AZURE dead-peer-detection action 'restart'
+    - set vpn ipsec ike-group AZURE dead-peer-detection interval '15'
+    - set vpn ipsec ike-group AZURE ikev2-reauth
+    - set vpn ipsec ike-group AZURE key-exchange 'ikev2'
+    - set vpn ipsec ike-group AZURE lifetime '28800'
+    - set vpn ipsec ike-group AZURE proposal 1 dh-group '2'
+    - set vpn ipsec ike-group AZURE proposal 1 encryption 'aes256'
+    - set vpn ipsec ike-group AZURE proposal 1 hash 'sha1'
+    - set vpn ipsec ike-group AZURE close-action start
+    - set vpn ipsec option disable-route-autoinstall
+    - set interfaces vti vti1 address '10.1.100.12/32'
+    - set interfaces vti vti1 description 'Tunnel for VyOS in Azure'
+    - set interfaces vti vti1 ip adjust-mss '1350'
+    - set protocols static route 10.2.100.12/32 interface vti1
+    - set protocols static route ${vyos_02_pub_subnet} blackhole distance '254'
+    - set protocols static route ${vyos_02_priv_subnet} blackhole distance '254'
+    - set vpn ipsec authentication psk VyOS id '${vyos_02_public_ip}'
+    - set vpn ipsec authentication psk VyOS id '${on_prem_public_ip}'
+    - set vpn ipsec authentication psk VyOS secret 'ch00s3-4-s3cur3-psk'
+    - set vpn ipsec site-to-site peer AZURE authentication local-id '${vyos_02_public_ip}'
+    - set vpn ipsec site-to-site peer AZURE authentication mode 'pre-shared-secret'
+    - set vpn ipsec site-to-site peer AZURE authentication remote-id '${on_prem_public_ip}'
+    - set vpn ipsec site-to-site peer AZURE connection-type 'initiate'
+    - set vpn ipsec site-to-site peer AZURE description 'TUNNEL to VyOS on AZURE'
+    - set vpn ipsec site-to-site peer AZURE ike-group 'AZURE'
+    - set vpn ipsec site-to-site peer AZURE ikev2-reauth 'inherit'
+    - set vpn ipsec site-to-site peer AZURE local-address '${vyos_02_pub_nic_ip}'
+    - set vpn ipsec site-to-site peer AZURE remote-address '${on_prem_public_ip}'
+    - set vpn ipsec site-to-site peer AZURE vti bind 'vti1'
+    - set vpn ipsec site-to-site peer AZURE vti esp-group 'AZURE'
+    - set policy prefix-list AS65001-OUT rule 10 action 'permit'
+    - set policy prefix-list AS65001-OUT rule 10 prefix '${data_vpc_public_subnet}'
+    - set policy prefix-list AS65001-OUT rule 20 action 'permit'
+    - set policy prefix-list AS65001-OUT rule 20 prefix '${transit_vpc_cidr}'
+    - set policy prefix-list AS65001-OUT rule 20 ge '24'
+    - set policy prefix-list AS65001-OUT rule 30 action 'permit'
+    - set policy prefix-list AS65001-OUT rule 30 prefix '${on_prem_subnet_cidr}'
+    - set policy prefix-list AS65001-OUT rule 30 ge '24'
+    - set policy prefix-list AS65002-OUT rule 10 action 'permit'
+    - set policy prefix-list AS65002-OUT rule 10 prefix '${transit_vpc_cidr}'
+    - set policy prefix-list AS65002-OUT rule 10 ge '24'
+    - set policy prefix-list AS65002-OUT rule 20 action 'permit'
+    - set policy prefix-list AS65002-OUT rule 20 prefix '${data_vpc_public_subnet}'
+    - set policy prefix-list AS65002-OUT rule 20 ge '24'
+    - set policy prefix-list AS65011-OUT rule 10 action 'permit'
+    - set policy prefix-list AS65011-OUT rule 10 prefix '${on_prem_subnet_cidr}'
+    - set policy prefix-list AS65011-OUT rule 10 ge '24'
+    - set policy route-map AS65001-OUT rule 20 action 'permit'
+    - set policy route-map AS65001-OUT rule 20 match ip address prefix-list 'AS65001-OUT'
+    - set policy route-map AS65002-OUT rule 20 action 'permit'
+    - set policy route-map AS65002-OUT rule 20 match ip address prefix-list 'AS65002-OUT'
+    - set policy route-map AS65011-OUT rule 10 action 'permit'
+    - set policy route-map AS65011-OUT rule 10 match ip address prefix-list 'AS65011-OUT'
+    - set protocols bfd peer ${vyos_01_pub_nic_ip} interval multiplier '3'
+    - set protocols bfd peer ${vyos_01_pub_nic_ip} interval receive '300'
+    - set protocols bfd peer ${vyos_01_pub_nic_ip} interval transmit '300'
+    - set protocols bfd peer ${route_server_endpoint_02_ip} interval multiplier '3'
+    - set protocols bfd peer ${route_server_endpoint_02_ip} interval receive '300'
+    - set protocols bfd peer ${route_server_endpoint_02_ip} interval transmit '300'
+    - set protocols bfd peer 10.2.100.12 interval multiplier '3'
+    - set protocols bfd peer 10.2.100.12 interval receive '300'
+    - set protocols bfd peer 10.2.100.12 interval transmit '300'
+    - set protocols bgp system-as '${vyos_bgp_as_number}'
+    - set protocols bgp address-family ipv4-unicast network ${data_vpc_public_subnet}
+    - set protocols bgp address-family ipv4-unicast redistribute connected 
+    - set protocols bgp neighbor 10.2.100.12 remote-as '${on_prem_bgp_as_number}'
+    - set protocols bgp neighbor 10.2.100.12 address-family ipv4-unicast route-map export 'AS65002-OUT'
+    - set protocols bgp neighbor 10.2.100.12 address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor 10.2.100.12 timers holdtime '30'
+    - set protocols bgp neighbor 10.2.100.12 bfd
+    - set protocols bgp neighbor 10.2.100.12 disable-connected-check
+    - set protocols bgp neighbor 10.2.100.12 update-source '10.1.100.12'
+    - set protocols bgp neighbor ${vyos_01_pub_nic_ip} address-family ipv4-unicast nexthop-self force
+    - set protocols bgp neighbor ${vyos_01_pub_nic_ip} address-family ipv4-unicast route-map export 'AS65001-OUT'
+    - set protocols bgp neighbor ${vyos_01_pub_nic_ip} address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor ${vyos_01_pub_nic_ip} disable-connected-check
+    - set protocols bgp neighbor ${vyos_01_pub_nic_ip} remote-as '${vyos_bgp_as_number}'
+    - set protocols bgp neighbor ${vyos_01_pub_nic_ip} timers holdtime '30'
+    - set protocols bgp neighbor ${vyos_01_pub_nic_ip} bfd
+    - set protocols bgp neighbor ${vyos_01_pub_nic_ip} update-source '${vyos_02_pub_nic_ip}'
+    - set protocols bgp neighbor ${route_server_endpoint_02_ip} address-family ipv4-unicast route-map export 'AS65011-OUT'
+    - set protocols bgp neighbor ${route_server_endpoint_02_ip} address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor ${route_server_endpoint_02_ip} disable-connected-check
+    - set protocols bgp neighbor ${route_server_endpoint_02_ip} remote-as '${route_server_endpoint_bgp_as_number}'
+    - set protocols bgp neighbor ${route_server_endpoint_02_ip} timers holdtime '30'
+    - set protocols bgp neighbor ${route_server_endpoint_02_ip} bfd
+    - set protocols bgp neighbor ${route_server_endpoint_02_ip} update-source '${vyos_02_priv_nic_ip}'
