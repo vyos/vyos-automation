@@ -1,0 +1,60 @@
+#cloud-config
+vyos_config_commands:
+    - set system host-name 'VyOS-02-on-Azure'
+    - set system login banner pre-login 'Welcome to the VyOS for DEMO on Azure'
+    - set interfaces ethernet eth0 description 'WAN'
+    - set interfaces ethernet eth1 description 'LAN'
+    - set system name-server '${dns}'
+    - set vpn ipsec interface 'eth0'
+    - set vpn ipsec esp-group On-Prem lifetime '3600'
+    - set vpn ipsec esp-group On-Prem mode 'tunnel'
+    - set vpn ipsec esp-group On-Prem pfs 'dh-group2'
+    - set vpn ipsec esp-group On-Prem proposal 1 encryption 'aes256'
+    - set vpn ipsec esp-group On-Prem proposal 1 hash 'sha1'
+    - set vpn ipsec ike-group On-Prem dead-peer-detection action 'restart'
+    - set vpn ipsec ike-group On-Prem dead-peer-detection interval '5'
+    - set vpn ipsec ike-group On-Prem ikev2-reauth
+    - set vpn ipsec ike-group On-Prem key-exchange 'ikev2'
+    - set vpn ipsec ike-group On-Prem lifetime '28800'
+    - set vpn ipsec ike-group On-Prem proposal 1 dh-group '2'
+    - set vpn ipsec ike-group On-Prem proposal 1 encryption 'aes256'
+    - set vpn ipsec ike-group On-Prem proposal 1 hash 'sha1'
+    - set vpn ipsec ike-group On-Prem close-action 'start'
+    - set vpn ipsec option disable-route-autoinstall
+    - set interfaces vti vti1 address '10.2.100.12/32'
+    - set interfaces vti vti1 description 'Tunnel for VyOS in On-Prem'
+    - set interfaces vti vti1 ip adjust-mss '1350'
+    - set protocols bfd peer 10.1.100.12 interval multiplier '3'
+    - set protocols bfd peer 10.1.100.12 interval receive '300'
+    - set protocols bfd peer 10.1.100.12 interval transmit '300'
+    - set protocols static route 10.1.100.12/32 interface vti1
+    - set vpn ipsec authentication psk VyOS id 'VyOS_02_Azure'
+    - set vpn ipsec authentication psk VyOS id 'VyOS_On-Prem'
+    - set vpn ipsec authentication psk VyOS secret 'ch00s3-4-s3cur3-psk'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS authentication local-id 'VyOS_02_Azure'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS authentication mode 'pre-shared-secret'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS authentication remote-id 'VyOS_On-Prem'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS connection-type 'initiate'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS description 'TUNNEL to VyOS on On-Prem'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS ike-group 'On-Prem'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS ikev2-reauth 'inherit'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS local-address '${vyos_02_pub_nic_ip}'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS remote-address '${on_prem_pub_ip}'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS vti bind 'vti1'
+    - set vpn ipsec site-to-site peer On-Prem-VyOS vti esp-group 'On-Prem'
+    - set protocols bgp system-as '${vyos_02_bgp_as_number}'
+    - set protocols bgp address-family ipv4-unicast network ${vyos_02_priv_subnet}
+    - set protocols bgp address-family ipv4-unicast network ${data_vnet_subnet}
+    - set protocols bgp neighbor 10.1.100.12 remote-as '${on_prem_bgp_as_number}'
+    - set protocols bgp neighbor 10.1.100.12 address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor 10.1.100.12 timers holdtime '30'
+    - set protocols bgp neighbor 10.1.100.12 bfd
+    - set protocols bgp neighbor 10.1.100.12 disable-connected-check
+    - set protocols bgp neighbor 10.1.100.12 update-source '10.2.100.12'
+    - set protocols bgp neighbor ${route_server_ip_01} address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor ${route_server_ip_01} remote-as '65515'
+    - set protocols bgp neighbor ${route_server_ip_01} update-source '${vyos_02_priv_nic_ip}'
+    - set protocols bgp neighbor ${route_server_ip_02} address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor ${route_server_ip_02} remote-as '65515'
+    - set protocols bgp neighbor ${route_server_ip_02} update-source '${vyos_02_priv_nic_ip}'
+   
