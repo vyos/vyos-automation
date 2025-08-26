@@ -56,7 +56,6 @@ data "aws_ami" "amazon_linux" {
 
 resource "aws_instance" "vyos" {
   ami               = data.aws_ami.vyos.id
-  #ami               = var.vyos_ami_id
   instance_type     = var.vyos_instance_type
   key_name          = "${var.prefix}-${var.key_pair_name}"
   availability_zone = var.availability_zone
