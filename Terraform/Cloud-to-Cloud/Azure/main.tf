@@ -1,7 +1,7 @@
 
 # Public IP for VyOS VM
 resource "azurerm_public_ip" "vyos_vm_public_ip" {
-  name                    = "vyov-vm-public-ip"
+  name                    = "vyos-vm-public-ip"
   location                = var.location
   resource_group_name     = var.resource_group
   allocation_method       = "Static"
