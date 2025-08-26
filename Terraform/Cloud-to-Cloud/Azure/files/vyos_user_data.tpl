@@ -1,0 +1,60 @@
+#cloud-config
+vyos_config_commands:
+    - set system host-name 'VyOS-for-DEMO-Azure'
+    - set system login banner pre-login 'Welcome to the VyOS for DEMO on Azure'
+    - set interfaces ethernet eth0 description 'WAN'
+    - set interfaces ethernet eth1 description 'LAN'
+    - set interfaces ethernet eth1 dhcp-options no-default-route
+    - set system name-server '${dns}'
+    - set service dns forwarding name-server '${dns}'
+    - set service dns forwarding listen-address '${vyos_priv_nic_ip}'
+    - set service dns forwarding allow-from '${private_subnet_cidr}'
+    - set service dns forwarding no-serve-rfc1918
+    - set nat source rule 10 outbound-interface name 'eth0'
+    - set nat source rule 10 source address '${private_subnet_cidr}'
+    - set nat source rule 10 translation address 'masquerade'
+    - set vpn ipsec interface 'eth0'
+    - set vpn ipsec esp-group AWS lifetime '3600'
+    - set vpn ipsec esp-group AWS mode 'tunnel'
+    - set vpn ipsec esp-group AWS pfs 'dh-group2'
+    - set vpn ipsec esp-group AWS proposal 1 encryption 'aes256'
+    - set vpn ipsec esp-group AWS proposal 1 hash 'sha1'
+    - set vpn ipsec ike-group AWS dead-peer-detection action 'restart'
+    - set vpn ipsec ike-group AWS dead-peer-detection interval '15'
+    - set vpn ipsec ike-group AWS ikev2-reauth
+    - set vpn ipsec ike-group AWS key-exchange 'ikev2'
+    - set vpn ipsec ike-group AWS lifetime '28800'
+    - set vpn ipsec ike-group AWS proposal 1 dh-group '2'
+    - set vpn ipsec ike-group AWS proposal 1 encryption 'aes256'
+    - set vpn ipsec ike-group AWS proposal 1 hash 'sha1'
+    - set vpn ipsec ike-group AWS close-action start
+    - set vpn ipsec option disable-route-autoinstall
+    - set interfaces vti vti1 address '10.2.100.11/32'
+    - set interfaces vti vti1 description 'Tunnel for VyOS in AWS'
+    - set interfaces vti vti1 ip adjust-mss '1350'
+    - set protocols bfd peer 10.1.100.11 interval multiplier '3'
+    - set protocols bfd peer 10.1.100.11 interval receive '300'
+    - set protocols bfd peer 10.1.100.11 interval transmit '300'
+    - set protocols static route 10.1.100.11/32 interface vti1
+    - set vpn ipsec authentication psk VyOS id 'VyOS_Azure'
+    - set vpn ipsec authentication psk VyOS id 'VyOS_AWS'
+    - set vpn ipsec authentication psk VyOS secret 'ch00s3-4-s3cur3-psk'
+    - set vpn ipsec site-to-site peer AWS-VyOS authentication local-id 'VyOS_Azure'
+    - set vpn ipsec site-to-site peer AWS-VyOS authentication mode 'pre-shared-secret'
+    - set vpn ipsec site-to-site peer AWS-VyOS authentication remote-id 'VyOS_AWS'
+    - set vpn ipsec site-to-site peer AWS-VyOS connection-type 'none'
+    - set vpn ipsec site-to-site peer AWS-VyOS description 'TUNNEL to VyOS on AWS'
+    - set vpn ipsec site-to-site peer AWS-VyOS ike-group 'AWS'
+    - set vpn ipsec site-to-site peer AWS-VyOS ikev2-reauth 'inherit'
+    - set vpn ipsec site-to-site peer AWS-VyOS local-address '${vyos_pub_nic_ip}'
+    - set vpn ipsec site-to-site peer AWS-VyOS remote-address '${aws_public_ip}'
+    - set vpn ipsec site-to-site peer AWS-VyOS vti bind 'vti1'
+    - set vpn ipsec site-to-site peer AWS-VyOS vti esp-group 'AWS'
+    - set protocols bgp system-as '${vyos_bgp_as_number}'
+    - set protocols bgp address-family ipv4-unicast network ${private_subnet_cidr}
+    - set protocols bgp neighbor 10.1.100.11 remote-as '${aws_bgp_as_number}'
+    - set protocols bgp neighbor 10.1.100.11 address-family ipv4-unicast soft-reconfiguration inbound
+    - set protocols bgp neighbor 10.1.100.11 timers holdtime '30'
+    - set protocols bgp neighbor 10.1.100.11 bfd
+    - set protocols bgp neighbor 10.1.100.11 disable-connected-check
+    - set protocols bgp neighbor 10.1.100.11 update-source '10.2.100.11'
