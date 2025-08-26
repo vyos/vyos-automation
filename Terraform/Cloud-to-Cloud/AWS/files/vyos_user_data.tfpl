@@ -37,7 +37,7 @@ vyos_config_commands:
     - set protocols static route ${vyos_priv_subnet} blackhole distance '254'
     - set vpn ipsec authentication psk VyOS id 'VyOS_Azure'
     - set vpn ipsec authentication psk VyOS id 'VyOS_AWS'
-    - set vpn ipsec authentication psk VyOS secret 'ch00s3-4-s3cur3-psk'
+    - set vpn ipsec authentication psk VyOS secret '${ipsec_psk}'
     - set vpn ipsec site-to-site peer AZURE-VyOS authentication local-id 'VyOS_AWS'
     - set vpn ipsec site-to-site peer AZURE-VyOS authentication mode 'pre-shared-secret'
     - set vpn ipsec site-to-site peer AZURE-VyOS authentication remote-id 'VyOS_Azure'
