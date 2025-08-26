@@ -73,7 +73,6 @@ variable "admin_username" {
 variable "admin_password" {
   description = "Admin password for the VMs"
   type        = string
-  default     = "P@ssw0rd1234"
 }
 
 variable "public_key" {
