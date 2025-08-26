@@ -1,0 +1,14 @@
+
+AWS side configs
+
+delete vpn ipsec site-to-site peer AZURE-VyOS remote-address
+set vpn ipsec site-to-site peer AZURE-VyOS remote-address '<AZURE-VyOS-Pub-IP>'
+set vpn ipsec option disable-route-autoinstall
+
+
+
+AZURE side configs
+
+delete vpn ipsec site-to-site peer AWS-VyOS remote-address
+set vpn ipsec site-to-site peer AWS-VyOS remote-address '<AWS-VyOS-Pub-IP>'
+set vpn ipsec option disable-route-autoinstall
