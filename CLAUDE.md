@@ -19,8 +19,8 @@ Each subdirectory carries its own `readme.md` with parameters and post-deploymen
 
 ## Repository layout
 - `CloudFormation/` — AWS CloudFormation templates (basic and advanced single-instance configurations).
-- `Terraform/` — Terraform configurations for AWS, Azure, and Cloud-to-Cloud connectivity.
-- `TerraformCloud/` — Terraform Cloud + Ansible reference deployments for AWS, Azure, Google Cloud, and vSphere.
+- `Terraform/` — Terraform configurations (e.g. `Cloud-to-Cloud/`).
+- `TerraformCloud/` — Terraform Cloud + vSphere + Ansible reference deployment.
 - `README.md` — placeholder.
 
 ## Cross-repo context
@@ -37,7 +37,3 @@ Mirror twin: `VyOS-Networks/vyos-automation`. Mirror pipeline not confirmed live
 - Each template ships with example post-deployment VyOS config text files. Keep these in sync when interface naming or default-config conventions change in `vyos-1x`.
 - No CI runs Terraform validation — when adding HCL, run `terraform fmt -recursive` and `terraform validate` locally before pushing.
 - Public-facing repo: don't embed AWS account IDs, real customer keys, or non-RFC-5737 IPv4 / non-RFC-3849 IPv6 ranges in examples.
-
----
-
-This file is mirrored on Confluence: [`vyos/vyos-automation`](https://internal.confluence.vyos.com/wiki/spaces/VYOS/pages/818020627). The Confluence page also carries the per-repo audit data (settings, workflows, secret counts, hygiene) that complements this CLAUDE.md. Edit either side; resync via the documentation pipeline.
