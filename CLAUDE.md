@@ -19,8 +19,8 @@ Each subdirectory carries its own `readme.md` with parameters and post-deploymen
 
 ## Repository layout
 - `CloudFormation/` — AWS CloudFormation templates (basic and advanced single-instance configurations).
-- `Terraform/` — Terraform configurations (e.g. `Cloud-to-Cloud/`).
-- `TerraformCloud/` — Terraform Cloud + vSphere + Ansible reference deployment.
+- `Terraform/` — Terraform configurations for AWS, Azure, and Cloud-to-Cloud connectivity.
+- `TerraformCloud/` — Terraform Cloud + Ansible reference deployments for AWS, Azure, Google Cloud, and vSphere.
 - `README.md` — placeholder.
 
 ## Cross-repo context
