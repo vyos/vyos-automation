@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## Project purpose
-Sample cloud-deployment templates for VyOS instances. Provides ready-to-use AWS CloudFormation stacks and Terraform/Terraform Cloud configurations for deploying VyOS routers in AWS and vSphere environments.
+Sample cloud-deployment templates for VyOS instances. Provides ready-to-use AWS CloudFormation stacks and Terraform/Terraform Cloud configurations for deploying VyOS routers in AWS, Azure, Google Cloud, and vSphere environments.
 
 ## Tech stack
 - HashiCorp HCL (Terraform) + AWS CloudFormation YAML.
