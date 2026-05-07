@@ -30,9 +30,6 @@ End-user-facing documentation samples. Independent of the build pipeline (`vyos-
 - Commit/PR title: `component: T12345: description` (Phorge task ID at https://vyos.dev) — enforced by inherited `vyos/.github` reusable workflows where applicable.
 - Only workflow currently present: `cla-check.yml` (CLA gate via `vyos/vyos-cla-signatures`).
 
-## Mirror relationship
-Mirror twin: `VyOS-Networks/vyos-automation`. Mirror pipeline not confirmed live; canonical edits happen on the `vyos/*` side.
-
 ## Notes for future contributors
 - Each template ships with example post-deployment VyOS config text files. Keep these in sync when interface naming or default-config conventions change in `vyos-1x`.
 - No CI runs Terraform validation — when adding HCL, run `terraform fmt -recursive` and `terraform validate` locally before pushing.
